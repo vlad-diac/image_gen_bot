@@ -25,8 +25,8 @@ This guide will walk you through the process of setting up ComfyUI on a RunPod i
 1. In Jupyter Lab, open a new terminal.
 2. Clone this repository:
    ```
-   git clone https://github.com/your-repo/comfyui-project.git
-   cd comfyui-project
+   git clone https://github.com/vlad-diac/image_gen_bot.git
+   cd image_gen_bot
    ```
 3. Make the installation script executable:
    ```
