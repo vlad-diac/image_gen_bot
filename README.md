@@ -67,15 +67,17 @@ After the installation is complete, you can start ComfyUI:
    ```
    cd /workspace/ComfyUI/
    ```
-2. Activate the virtual environment:
+2. Edit the .env.example file with your API keys and save it as .env
+3. Activate the virtual environment:
    ```
    source venv/bin/activate
    ```
-3. Run the Market Bot:
+4. Run the Market Bot:
    ```
-   python market_ui.py
+   python bot_ui.py
    ```
-4. Access the Market Bot:
+
+5. Access the Market Bot:
     Go back to your RunPod dashboard.
     Find the pod you deployed and click on "Connect".
     Under "HTTP Service", you should see a link for port 7860. Click on it to open the Market Bot in your browser.
