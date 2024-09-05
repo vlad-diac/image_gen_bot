@@ -2,7 +2,7 @@ import gradio as gr
 from market_bot import Chatbot, OPENAI_API_KEY, ImageGenerator
 import random
 import logging
-from pprint import pprint
+from pprint import pformat, pprint
 import json
 import os
 
@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 # Initialize your custom Chatbot
-ai_chatbot = Chatbot(api_key=OPENAI_API_KEY, model="gpt-4")
+ai_chatbot = Chatbot(api_key=OPENAI_API_KEY, model="gpt-4o")
 try:
     with open("market_bot_system_prompt.txt", "r") as f:
         system_prompt = f.read()
@@ -43,12 +43,14 @@ def generate_images(prompts):
             steps=25,
             seed=random.randint(0, 4294967295)
         )
-        images.append(image)  # Assuming 'image' is already a PIL Image object
+        images.append(image) 
+    print("generate_images output:")
+    pprint(images)
     return images
 
 def chat(message, history):
-    logger.info(f"Received message: {message}")
-    logger.info(f"Current history: {history}")
+    print(f"Received message: {message}")
+    print(f"Current history: {history}")
     functions = [
         {
             "type": "function",
@@ -88,12 +90,13 @@ def chat(message, history):
     ]
     
     response = ai_chatbot.send_message(message, functions=functions)
+    print("response:")
     pprint(response)
+
     if isinstance(response, dict) and "function_call" in response:
         function_name = response["function_call"]
         
         if function_name == "generate_images":
-            pprint(response["arguments"])
             function_args = response["arguments"]
             generated_images = generate_images(function_args["prompts"])
             
@@ -105,19 +108,18 @@ def chat(message, history):
                 markdown_message += f"- Content Description: {function_args['content_descriptions'][i]}\n"
                 markdown_message += f"- Prompt: {prompt}\n\n"
             
-            # Add the function call response to the conversation
-            ai_chatbot.send_message(f"Function 'generate_images' was called. {markdown_message}")
-            
-            return markdown_message, generated_images
+            return {
+                "type": "image_generation",
+                "message": markdown_message,
+                "images": generated_images,
+                "prompts": function_args["prompts"]
+            }
     else:
-        return response, []
+        return {
+            "type": "text",
+            "message": response
+        }
 
-def format_chat_history(history):
-    formatted_history = []
-    for human, bot in history:
-        formatted_history.append(f"Human: {human}")
-        formatted_history.append(f"AI: {bot}")
-    return "\n".join(formatted_history)
 
 with gr.Blocks() as demo:
     gr.Markdown("# Marketing Chatbot with Image Generation")
@@ -132,33 +134,18 @@ with gr.Blocks() as demo:
             image_gallery = gr.Gallery(label="Generated Images", show_label=True)
     
     def respond(message, chat_history):
-        bot_message, images = chat(message, chat_history)
-        logger.info(f"Bot message:\n{pformat(bot_message)}")
-        if isinstance(bot_message, dict) and "function_call" in bot_message:
-            # Handle function call
-            if bot_message['function_call'] == 'generate_images':
-                prompts = bot_message['arguments']['prompts']
-
-                generated_images = generate_images(prompts)
-                logger.info(f"Generated images:\n{pformat(generated_images)}")
-                # Create a list of (image, label) tuples
-                image_objects = [(img['image'], prompt) for img, prompt in zip(generated_images, prompts)]
-                
-                # Create a markdown formatted message
-                markdown_message = "### Generated Images\n\n"
-                for i, prompt in enumerate(prompts):
-                    markdown_message += f"**Image {i+1}:**\n"
-                    markdown_message += f"- Date: {bot_message['arguments']['dates'][i]}\n"
-                    markdown_message += f"- Content Description: {bot_message['arguments']['content_descriptions'][i]}\n"
-                    markdown_message += f"- Prompt: {prompt}\n\n"
-                chatbot_history_response = bot_message['arguments']
-                
-                chat_history.append((message, markdown_message))
-                return "", chat_history, image_objects
+        response = chat(message, chat_history)
+        print("Chat response:")
+        pprint(response)
+        print("Chat History:")
+        pprint(chat_history)
+        if response["type"] == "image_generation":
+            image_objects = [(img["filename"], prompt) for img, prompt in zip(response["images"], response["prompts"])]
+            chat_history.append((message, response["message"]))
+            return "", chat_history, image_objects
         else:
-            # Handle regular text response
-            chat_history.append((message, bot_message))
-        return "", chat_history, []
+            chat_history.append((message, response["message"]))
+            return "", chat_history, []
 
     send.click(respond, [msg, chatbot], [msg, chatbot, image_gallery])
     msg.submit(respond, [msg, chatbot], [msg, chatbot, image_gallery])

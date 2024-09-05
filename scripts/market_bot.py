@@ -52,26 +52,20 @@ class Chatbot:
         print("params")
         pprint(params)
         response = self.client.chat.completions.create(**params)
-
+        print("openai response")
+        pprint(response)
         # Extract the response content
         choice = response.choices[0]
         if choice.message.tool_calls:
             # The model wants to call a function
             tool_call = choice.message.tool_calls[0]
-            self.messages.append({
-                "role": "assistant",
-                "content": None,
-                "tool_calls": [
-                    {
-                        "id": tool_call.id,
-                        "type": "function",
-                        "function": {
-                            "name": tool_call.function.name,
-                            "arguments": tool_call.function.arguments
-                        }
-                    }
-                ]
-            })
+            function_call_result_message = {
+                "role": "tool",
+                "content": json.dumps({"result": "Function executed successfully"}),
+                "tool_call_id": tool_call.id
+            }
+            self.messages.append(choice.message)
+            self.messages.append(function_call_result_message)
             return {
                 "function_call": tool_call.function.name,
                 "arguments": json.loads(tool_call.function.arguments)
