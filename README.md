@@ -12,7 +12,11 @@ This guide will walk you through the process of setting up ComfyUI on a RunPod i
    - Container Disk: Set to at least 150GB
    - Volume Disk: Set to at least 150GB
 4. Under "Exposed Ports", add a the following HTTP ports: 7860, 8188
-5. Click "Deploy" to create your pod.
+5. Add the OpenAI API key as an environment variable:
+    - Click on "Environment"
+    - Add a new variable: `OPENAI_API_KEY`
+    - Set the value to your OpenAI API key
+6. Click "Deploy" to create your pod.
 
 ## 2. Access the Jupyter Instance
 
@@ -89,5 +93,6 @@ If you encounter any issues during the installation or while running ComfyUI, pl
 - Ensure all required ports (7860, 8888, 8188) are properly exposed and not blocked by any firewalls.
 - Check the installation logs for any error messages.
 - Make sure you have sufficient disk space on both the container and volume disks.
+- Ensure your API keys are set correctly as environment variables in the RunPod dashboard. You can edit the pod and check/add the keys in the "Environment" tab.
 
 For further assistance, please open an issue in this repository or consult the ComfyUI documentation.

@@ -69,9 +69,6 @@ wget --content-disposition https://huggingface.co/comfyanonymous/flux_text_encod
 #move all files from scripts/ to /workspace/ComfyUi
 mv /workspace/image_gen_bot/scripts/* /workspace/ComfyUI/
 
-#add .env.example to /workspace/ComfyUI
-mv /workspace/image_gen_bot/.env.example /workspace/ComfyUI/
-
 
 
 

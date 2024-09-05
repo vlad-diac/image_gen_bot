@@ -2,20 +2,35 @@ import gradio as gr
 from market_bot import Chatbot, OPENAI_API_KEY, ImageGenerator
 import random
 import logging
-from pprint import pformat
+from pprint import pprint
 import json
+import os
+
+# Create a 'logs' directory if it doesn't exist
+log_dir = 'logs'
+os.makedirs(log_dir, exist_ok=True)
 
 # Set up logging
+log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs', 'bot_ui.log')
+os.makedirs(os.path.dirname(log_file), exist_ok=True)
+
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    filename='bot_ui.log',
+                    filename=log_file,
                     filemode='a')
 logger = logging.getLogger(__name__)
 
 # Initialize your custom Chatbot
 ai_chatbot = Chatbot(api_key=OPENAI_API_KEY, model="gpt-4")
-system_prompt = open("market_bot_system_prompt.txt", "r").read()
-ai_chatbot.set_system_prompt(system_prompt)
+try:
+    with open("market_bot_system_prompt.txt", "r") as f:
+        system_prompt = f.read()
+    ai_chatbot.set_system_prompt(system_prompt)
+    logger.info("System prompt loaded successfully")
+except FileNotFoundError:
+    logger.error("System prompt file not found")
+except Exception as e:
+    logger.error(f"Error loading system prompt: {str(e)}")
 
 generator = ImageGenerator()
 
@@ -32,6 +47,8 @@ def generate_images(prompts):
     return images
 
 def chat(message, history):
+    logger.info(f"Received message: {message}")
+    logger.info(f"Current history: {history}")
     functions = [
         {
             "type": "function",
@@ -71,12 +88,13 @@ def chat(message, history):
     ]
     
     response = ai_chatbot.send_message(message, functions=functions)
-    
+    pprint(response)
     if isinstance(response, dict) and "function_call" in response:
         function_name = response["function_call"]
-        function_args = json.loads(response["arguments"])
         
         if function_name == "generate_images":
+            pprint(response["arguments"])
+            function_args = response["arguments"]
             generated_images = generate_images(function_args["prompts"])
             
             # Create a markdown formatted message
