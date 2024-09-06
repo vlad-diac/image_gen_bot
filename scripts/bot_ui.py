@@ -5,6 +5,15 @@ import logging
 from pprint import pformat, pprint
 import json
 import os
+import torch
+from transformers import pipeline
+import numpy as np
+import gradio as gr
+import threading
+import queue
+import librosa
+import datetime
+
 
 # Create a 'logs' directory if it doesn't exist
 log_dir = 'logs'
@@ -22,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize your custom Chatbot
 ai_chatbot = Chatbot(api_key=OPENAI_API_KEY, model="gpt-4o")
+
 try:
     with open("market_bot_system_prompt.txt", "r") as f:
         system_prompt = f.read()
@@ -33,6 +43,19 @@ except Exception as e:
     logger.error(f"Error loading system prompt: {str(e)}")
 
 generator = ImageGenerator()
+# Replace the Whisper model initialization with the pipeline
+transcriber = pipeline("automatic-speech-recognition", model="openai/whisper-base.en")
+
+def transcribe(stream, new_chunk):
+    sr, y = new_chunk
+    y = y.astype(np.float32)
+    y /= np.max(np.abs(y))
+
+    if stream is not None:
+        stream = np.concatenate([stream, y])
+    else:
+        stream = y
+    return stream, transcriber({"sampling_rate": sr, "raw": stream})["text"]
 
 def generate_images(prompts):
     images = []
@@ -104,8 +127,11 @@ def chat(message, history):
             markdown_message = "### Generated Images\n\n"
             for i, prompt in enumerate(function_args["prompts"]):
                 markdown_message += f"**Image {i+1}:**\n"
-                markdown_message += f"- Date: {function_args['dates'][i]}\n"
-                markdown_message += f"- Content Description: {function_args['content_descriptions'][i]}\n"
+                if "dates" in function_args:
+                    markdown_message += f"- Date: {function_args['dates'][i]}\n"
+                if "content_description" in function_args:
+                    markdown_message += f"- Content Description: {function_args['content_descriptions'][i]}\n"
+                
                 markdown_message += f"- Prompt: {prompt}\n\n"
             
             return {
@@ -120,18 +146,20 @@ def chat(message, history):
             "message": response
         }
 
-
 with gr.Blocks() as demo:
-    gr.Markdown("# Marketing Chatbot with Image Generation")
+    gr.Markdown("# Marketing Chatbot with Image Generation and Real-Time Speech Recognition")
     
     with gr.Row():
         with gr.Column(scale=1):
             chatbot = gr.Chatbot()
             msg = gr.Textbox(label="Enter your message")
+            audio_input = gr.Audio(sources=["microphone"], streaming=True)
             send = gr.Button("Send")
         
         with gr.Column(scale=1):
             image_gallery = gr.Gallery(label="Generated Images", show_label=True)
+    
+    audio_state = gr.State()
     
     def respond(message, chat_history):
         response = chat(message, chat_history)
@@ -147,9 +175,26 @@ with gr.Blocks() as demo:
             chat_history.append((message, response["message"]))
             return "", chat_history, []
 
+    def process_audio(audio_state, new_chunk):
+        audio_state, transcription = transcribe(audio_state, new_chunk)
+        return audio_state, transcription
+
+    def reset_audio_stream(audio_state):
+        return None, audio_state.value
+
     send.click(respond, [msg, chatbot], [msg, chatbot, image_gallery])
     msg.submit(respond, [msg, chatbot], [msg, chatbot, image_gallery])
-    
+    audio_input.stream(
+        process_audio,
+        inputs=[audio_state, audio_input],
+        outputs=[audio_state, msg]
+    )
+    audio_input.stop_recording(
+        reset_audio_stream,
+        inputs=[audio_state],
+        outputs=[audio_state, msg]
+    )
+
 demo.launch(server_name="0.0.0.0", server_port=7860)
 
 

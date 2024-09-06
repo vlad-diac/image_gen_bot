@@ -1,4 +1,4 @@
-# ComfyUI Installation Guide
+# ComfyUI + Market Bot Installation Guide 
 
 This guide will walk you through the process of setting up ComfyUI on a RunPod instance with a 3090 GPU.
 
@@ -96,3 +96,17 @@ If you encounter any issues during the installation or while running ComfyUI, pl
 - Ensure your API keys are set correctly as environment variables in the RunPod dashboard. You can edit the pod and check/add the keys in the "Environment" tab.
 
 For further assistance, please open an issue in this repository or consult the ComfyUI documentation.
+
+## Features
+
+1. **ComfyUI Integration**: A powerful and customizable UI for Stable Diffusion, allowing for advanced image generation workflows.
+
+2. **Market Bot**: An AI-powered chatbot specifically designed for marketing tasks, capable of generating marketing campaign timelines and content ideas.
+
+3. **Image Generation**: Utilizes the FLUX model to generate high-quality images based on text prompts, integrated seamlessly with the Market Bot.
+
+4. **Real-time Speech Recognition**: Incorporates the Whisper model(huggingface) for automatic speech recognition, allowing users to interact with the bot using voice input.
+
+5. **Custom Nodes**: Includes several custom nodes for ComfyUI, enhancing its capabilities and allowing for more complex image generation workflows.
+
+6. **Automated Installation**: Includes a comprehensive installation script that sets up the entire environment, including ComfyUI, custom nodes, and required models.
